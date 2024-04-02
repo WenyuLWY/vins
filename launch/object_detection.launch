@@ -1,0 +1,50 @@
+<launch>
+
+  <!-- common parameters -->
+  <arg name="imu_topic"                   default="/camera/imu"/> 
+  <arg name="image_topic"                 default="/camera/color/image_raw"/> 
+  <arg name="depth_topic"                 default="/camera/aligned_depth_to_color/image_raw"/> 
+  <arg name="weight_path"                 default ="$(find vins_estimator)/config/yolov8n-seg.pt"/>
+
+  <arg name="image_width"                 default="960"/> 
+  <arg name="image_height"                default="540"/> 
+
+  <!-- distortion_parameters -->
+  <arg name="k1"                          default="0.166439"/> 
+  <arg name="k2"                          default="-0.502598"/> 
+  <arg name="p1"                          default="-0.000923"/> 
+  <arg name="p2"                          default="0.001173"/> 
+  <arg name="k3"                          default="0.461488"/> 
+  <!-- projection_parameters -->
+  <arg name="fx"                          default="675.585510"/> 
+  <arg name="fy"                          default="676.195007"/> 
+  <arg name="cx"                          default="492.865662"/> 
+  <arg name="cy"                          default="269.670898"/> 
+
+
+
+  <node pkg="vins_estimator"    type="object_detection_node.py"    name="object_detection_node"    output="screen">
+    <param name="imu_topic"                   value="$(arg imu_topic)"/>
+    <param name="image_topic"                 value="$(arg image_topic)"/>
+    <param name="depth_topic"                 value="$(arg depth_topic)"/>
+    <param name="weight_path"                 value="$(arg weight_path)"/>
+    <param name="image_width"                 value="$(arg image_width)"/>
+    <param name="image_height"                value="$(arg image_height)"/>
+    <param name="k1"                          value="$(arg k1)"/>
+    <param name="k2"                          value="$(arg k2)"/>
+    <param name="p1"                          value="$(arg p1)"/>
+    <param name="p2"                          value="$(arg p2)"/>
+    <param name="k3"                          value="$(arg k3)"/>
+    <param name="fx"                          value="$(arg fx)"/>
+    <param name="fy"                          value="$(arg fy)"/>
+    <param name="cx"                          value="$(arg cx)"/>
+    <param name="cy"                          value="$(arg cy)"/>
+  </node>
+
+  <arg name="bagfile" default="/root/downloads/bdr/comp_static_and_dynamic/longloop/bdr_compare_longloop_dynamic.bag"/>
+  <node pkg="rosbag" type="play" name="player" args="-d 1 -r 1  $(arg bagfile)" output="screen"/>
+
+  <arg name="rviz"                    default="true"/>
+  <node if="$(arg rviz)"  name="rvizvisualisation" pkg="rviz" type="rviz" output="screen" args="-d $(find vins_estimator)/config/run.rviz" />
+
+</launch>

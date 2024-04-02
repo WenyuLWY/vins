@@ -1,0 +1,243 @@
+// const float nan_point = std::numeric_limits<float>::quiet_NaN();
+const pcl::PointXYZ nan_point(std::numeric_limits<float>::quiet_NaN(), 
+                                    std::numeric_limits<float>::quiet_NaN(), 
+                                    std::numeric_limits<float>::quiet_NaN());
+
+
+struct Point3D {
+    int64_t x, y, z;
+
+    bool operator==(const Point3D& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
+};
+
+namespace std {
+    template<>
+    struct hash<Point3D> {
+        size_t operator()(const Point3D& s) const noexcept {
+            return (((std::hash<int64_t>()(s.z)*HASH_P)%MAX_N + std::hash<int64_t>()(s.y))*HASH_P)%MAX_N + std::hash<int64_t>()(s.x);
+        }
+    };
+}
+
+float getDepth(const cv::Mat & depthImage,float col, float row,bool smoothing=false)
+{
+    float depth = 0.0f;
+    // int u = int(x+0.5f);
+	// int v = int(y+0.5f);
+	// if(u == depthImage.cols && x<float(depthImage.cols))
+	// {
+	// 	u = depthImage.cols - 1;
+	// }
+	// if(v == depthImage.rows && y<float(depthImage.rows))
+	// {
+	// 	v = depthImage.rows - 1;
+	// }
+
+    // if(!(u >=0 && u<depthImage.cols && v >=0 && v<depthImage.rows))
+	// {
+    //     ROS_WARN("!(x >=0 && x<depthImage.cols && y >=0 && y<depthImage.rows) cond failed! returning bad point. (x=%f (u=%d), y=%f (v=%d), cols=%d, rows=%d)",
+    //         x,u,y,v,depthImage.cols, depthImage.rows)
+	// 	return 0;
+	// }
+    // depth = float(depthImage.at<unsigned short>(y,x))*0.001f;
+       depth = float(depthImage.at<uint16_t>(row, col))*0.001f;
+    return depth;
+}
+
+pcl::PointXYZ projectDepthTo3D(
+		const cv::Mat & depthImage,
+		float row , float col,
+		bool smoothing)
+{
+	pcl::PointXYZ pt;
+
+    // float depth = getDepth(depthImage, row, col, false);
+    float depth = float(depthImage.at<uint16_t>(row, col))*0.001f;
+	if(depth > 0.0f)
+	{
+		// Fill in XYZ
+		pt.x = (col - cx) * depth / fx;
+		pt.y = (row - cy) * depth / fy;
+		pt.z = depth;
+	}
+	else
+	{
+		// pt.x = pt.y = pt.z = std::numeric_limits<float>::quiet_NaN();
+        pt.x = pt.y = pt.z = 0;
+	}
+	return pt;
+}
+
+
+
+void depth2pcd(const cv::Mat& depth_image)
+{
+    
+    // #pragma omp parallel for collapse(2)
+    std::unordered_map<Point3D, int> pcd_to_depth_map;
+    //clear cloud
+    
+    omp_set_num_threads(20);
+    #pragma omp parallel for 
+    //  
+
+    for (auto row = 0; row < depth_image.rows ; row++) 
+    {
+        for (auto col = 0; col < depth_image.cols ; col++) 
+        {
+
+            // pcl::PointXYZ & pt = cloud->at((row/decimation)*cloud->width + (col/decimation));
+
+            const uint16_t* row_ptr = depth_image.ptr<uint16_t>(row);
+            auto depth_value = row_ptr[col];
+            int i = row * depth_image.cols + col;
+            if (depth_value != 0) 
+            {
+                // float depth_scaled = depth_value / depth_factor;
+                // float z = depth_scaled;
+                // float x = (col - cx) * z / fx;
+                // float y = (row - cy) * z / fy;
+
+                float z = depth_value;
+                float x = (col - cx) * z / fx;
+                float y = (row - cy) * z / fy;
+
+
+
+
+                cloud->points[i].x = z/depth_factor;
+                cloud->points[i].y = -x/depth_factor;
+                cloud->points[i].z = -y/depth_factor;
+            }
+            else
+            {
+                cloud->points[i] = nan_point;
+
+
+            }
+        }
+    }
+
+    // std::vector<int> indices;
+    // pcl::removeNaNFromPointCloud(*cloud, *cloud, indices);
+    
+    // cloud->height = 1;
+    // cloud->width  =  cloud->size();
+    // cloud->is_dense = false;
+
+    // std::cout << "Number of points in cloud: " << cloud_filterout->size() << std::endl;
+
+    // pcd_to_depth_map.emplace(
+    //     Point3D{static_cast<int64_t>(z),static_cast<int64_t>(-x),static_cast<int64_t>(-y)},
+    //     1);
+
+
+}
+
+
+void cloudFromDepthRGB(const cv::Mat& depth_image, std::vector<int> * validIndices)
+{
+    
+    // #pragma omp parallel for collapse(2)
+    std::unordered_map<Point3D, int> pcd_to_depth_map;
+
+
+
+	// if(validIndices)
+	// {
+	// 	validIndices->resize(cloud->size());
+	// }
+
+    //  
+
+    // int i = 0;
+
+
+    // for (auto row = 0; row < depth_image.rows && row/decimation < (int)cloud->height; row+=decimation) 
+    // {
+    //     for (auto col = 0; col < depth_image.cols && col/decimation < (int)cloud->width; col+=decimation) 
+    //     {
+
+    //         pcl::PointXYZ & pt = cloud->at((row/decimation)*cloud->width + (col/decimation));
+
+    //         pcl::PointXYZ ptXYZ = projectDepthTo3D(depth_image, row, col, false);
+
+    //         pt.x = ptXYZ.z;
+    //         pt.y = -ptXYZ.x;
+    //         pt.z = -ptXYZ.y;
+
+    //         if (validIndices)
+    //         {
+    //             validIndices->at(i) = (row / decimation)*cloud->width + (col / decimation);
+    //         }
+    //         ++i;
+
+    //     }
+    // }
+
+    omp_set_num_threads(20);
+    #pragma omp parallel for 
+
+    for (auto row = 0; row < depth_image.rows; row+=decimation) 
+    {
+        for (auto col = 0; col < depth_image.cols; col+=decimation) 
+        {
+
+            pcl::PointXYZ & pt = cloud->at((row/decimation)*cloud->width + (col/decimation));
+
+            pcl::PointXYZ ptXYZ = projectDepthTo3D(depth_image, row, col, false);
+
+            pt.x = ptXYZ.z;
+            pt.y = -ptXYZ.x;
+            pt.z = -ptXYZ.y;
+
+            // if (validIndices)
+            // {
+            //     validIndices->at(i) = (row / decimation)*cloud->width + (col / decimation);
+            // }
+            // ++i;
+
+        }
+    }
+
+
+	// if(validIndices)
+	// {
+	// 	validIndices->resize(i);
+	// }
+
+    // std::vector<int> indices;
+    // pcl::removeNaNFromPointCloud(*cloud, *cloud_filterout, indices);
+    // std::cout << "Number of points in cloud: " << cloud_filterout->size() << std::endl;
+
+    // pcd_to_depth_map.emplace(
+    //     Point3D{static_cast<int64_t>(z),static_cast<int64_t>(-x),static_cast<int64_t>(-y)},
+    //     1);
+
+
+}
+
+// cv::Mat CreateAngleImage(const cv::Mat& depth_image) {
+//   cv::Mat angle_image = cv::Mat::zeros(depth_image.size(), DataType<float>::type);
+//   cv::Mat x_mat = cv::Mat::zeros(depth_image.size(), DataType<float>::type);
+//   cv::Mat y_mat = cv::Mat::zeros(depth_image.size(), DataType<float>::type);
+
+//   const auto& sines_vec = _params.RowAngleSines();
+//   const auto& cosines_vec = _params.RowAngleCosines();
+  
+//   float dx, dy;
+//   x_mat.row(0) = depth_image.row(0) * cosines_vec[0];
+//   y_mat.row(0) = depth_image.row(0) * sines_vec[0];
+//   for (int r = 1; r < angle_image.rows; ++r) {
+//     x_mat.row(r) = depth_image.row(r) * cosines_vec[r];
+//     y_mat.row(r) = depth_image.row(r) * sines_vec[r];
+//     for (int c = 0; c < angle_image.cols; ++c) {
+//       dx = fabs(x_mat.at<float>(r, c) - x_mat.at<float>(r - 1, c));
+//       dy = fabs(y_mat.at<float>(r, c) - y_mat.at<float>(r - 1, c));
+//       angle_image.at<float>(r, c) = atan2(dy, dx);
+//     }
+//   }
+//   return angle_image;
+// }

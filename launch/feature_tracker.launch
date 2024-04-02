@@ -1,0 +1,169 @@
+<launch>
+
+  <!-- Use the max number of threads of your device.  -->
+  <arg name="num_threads"                   default="0"/>  <!-- If you don't know, set it to 0. We will detect it automatically. -->
+  <arg name="weight_path"                   default ="$(find vins_estimator)/config/yolov8n-seg.pt"/>
+  <arg name="kernel_size"                   default="3" />  <!-- 11 -->
+  <arg name="dilate_iter"                   default="1" />  <!-- 2 -->
+  
+
+  <!-- common parameters -->
+  <arg name="imu_topic"                   default="/camera/imu"/> 
+  <arg name="image_topic"                 default="/camera/color/image_raw"/> 
+  <arg name="depth_topic"                 default="/camera/aligned_depth_to_color/image_raw"/> 
+  <arg name="output_path"                 default="$(find vins_estimator)/../output"/> 
+
+
+  <!-- pointcloud settings and RGBD camera Ideal Range-->
+  <arg name="depth_min_dist"              default="0.6"/> 
+  <arg name="depth_max_dist"              default="8"/> 
+
+
+  <!-- camera calibration -->
+  <arg name="model_type"                  default="PINHOLE"/> 
+  <arg name="camera_name"                 default="camera"/> 
+  <arg name="image_width"                 default="960"/> 
+  <arg name="image_height"                default="540"/> 
+  <!-- distortion_parameters -->
+  <arg name="k1"                          default="0.166439"/> 
+  <arg name="k2"                          default="-0.502598"/> 
+  <arg name="p1"                          default="-0.000923"/> 
+  <arg name="p2"                          default="0.001173"/> 
+  <arg name="k3"                          default="0.461488"/> 
+  <!-- projection_parameters -->
+  <arg name="fx"                          default="675.585510"/> 
+  <arg name="fy"                          default="676.195007"/> 
+  <arg name="cx"                          default="492.865662"/> 
+  <arg name="cy"                          default="269.670898"/> 
+
+
+  <!-- Extrinsic parameter between IMU and Camera. -->
+  <arg name="estimate_extrinsic"          default="1"/>     <!-- 0  Have an accurate extrinsic parameters. We will trust the following imu^R_cam, imu^T_cam, don't change it.
+                                                                1  Have an initial guess about extrinsic parameters. We will optimize around your initial guess.
+                                                                2  Don't know anything about extrinsic parameters. You don't need to give R,T. We will try to calibrate it. Do some rotation movement at beginning.
+                                                                If you choose 0 or 1, you should write down the following matrix. -->
+  <arg name="extrinsicTranslation"        default="-2.4233202183422883e-0, 3.5309396775737897e-02, 2.9011589650666417e-02"/>  <!-- Rotation from camera frame to imu frame, imu^R_cam -->
+  <arg name="extrinsicRotation"           default="9.9965642641630881e-01, 4.3208414355446444e-03, -2.5852648875190114e-02,
+   -4.9802906171679834e-03, 9.9966246176925300e-01, -2.5498220228190066e-02, 
+   2.5733748851334053e-02, 2.5618213417910568e-02, 9.9934052320084110e-01"/>  <!-- Rotation from camera frame to imu frame, imu^R_cam -->
+
+
+  <!-- feature traker paprameters -->
+  <arg name="max_cnt"                     default="100 "/>    <!-- max feature number in feature tracking -->
+  <arg name="min_dist"                    default="15"/>      <!-- min distance between two features. default: 15 -->
+  <arg name="freq"                        default="0"/>      <!-- frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image -->
+  <arg name="F_threshold"                 default="1.0"/>     <!-- ransac threshold (pixel) -->
+  <arg name="show_track"                  default="1"/>       <!-- publish tracking image as topic -->
+  <arg name="equalize"                    default="1"/>       <!-- if image is too dark or light, trun on equalize to find enough features -->
+  <arg name="fisheye"                     default="0"/>       <!-- if using fisheye, trun on it. A circle mask will be loaded to remove edge noisy points -->
+
+
+  <!-- optimization parameters -->
+  <arg name="max_solver_time"             default="0.04"/>  <!-- max solver itration time (ms), to guarantee real time -->
+  <arg name="max_num_iterations"          default="8 "/>    <!-- max solver itrations, to guarantee real time -->
+  <arg name="keyframe_parallax"           default="10.0 "/> <!-- keyframe selection threshold (pixel) -->
+
+
+  <!-- imu parameters,The more accurate parameters you provide, the better performance -->
+  <arg name="acc_n"                         default="0.1"/>        <!-- accelerometer measurement noise standard deviation.  -->
+  <arg name="gyr_n"                         default="0.5"/>        <!-- gyroscope measurement noise standard deviation.    -->
+  <arg name="acc_w"                         default="0.001"/>      <!-- accelerometer bias random work noise standard deviation.  -->
+  <arg name="gyr_w"                         default="0.001"/>      <!-- gyroscope bias random work noise standard deviation.   -->
+  <arg name="g_norm"                        default="9.805"/>      <!-- gravity magnitude -->
+    
+  <!-- loop closure parameters -->
+  <arg name="loop_closure"                  default="0"/>          <!-- start loop closure -->
+  <arg name="fast_relocalization"           default="1"/>          <!-- useful in real-time and large project -->
+  <arg name="load_previous_pose_graph"      default="0"/>          <!-- load and reuse previous pose graph; load from 'pose_graph_save_path' -->
+  <arg name="pose_graph_save_path"          default="$(find vins_estimator)/../output/pose_graph"/>   <!-- save and load path -->
+    
+
+  <!-- unsynchronization parameters -->
+  <arg name="estimate_td"                   default="1"/>           <!-- online estimate time offset between camera and imu -->
+  <arg name="td"                            default="-0.0229402219449 "/>  <!-- initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock) -->
+
+  <!-- rolling shutter parameters -->
+  <arg name="rolling_shutter"               default="1"/>           <!-- 0: global shutter camera, 1: rolling shutter camera -->
+  <arg name="rolling_shutter_tr"            default="0.033"/>       <!-- unit: s. rolling shutter read out time per frame (from data sheet). -->
+
+  <!-- visualization parameters -->
+  <arg name="save_image"                    default="0"/>           <!-- enable this might cause crash; save image in pose graph for visualization prupose; you can close this function by setting 0 -->
+  <arg name="visualize_imu_forward"         default="0"/>            <!-- output imu forward propogation to achieve low latency and high frequence results -->
+  <arg name="visualize_camera_size"         default="0.4"/>       <!-- size of camera marker in RVIZ -->
+
+  <arg name="dynamic_label"                 default="person, machine"/>
+
+
+  <node pkg="vins_estimator"    type="feature_tracker_node"    name="feature_tracker_node"    output="screen">
+    <param name="num_threads"                 type="int"           value="$(arg num_threads)"/>
+    <param name="imu_topic"                   type="string"        value="$(arg imu_topic)"/>
+    <param name="image_topic"                 type="string"        value="$(arg image_topic)"/>
+    <param name="depth_topic"                 type="string"        value="$(arg depth_topic)"/>
+    <param name="output_path"                 type="string"        value="$(arg output_path)"/>
+    <param name="depth_min_dist"              type="double"        value="$(arg depth_min_dist)"/>
+    <param name="depth_max_dist"              type="double"        value="$(arg depth_max_dist)"/>
+    <param name="model_type"                  type="string"        value="$(arg model_type)"/>
+    <param name="camera_name"                 type="string"        value="$(arg camera_name)"/>
+    <param name="image_width"                 type="int"           value="$(arg image_width)"/>
+    <param name="image_height"                type="int"           value="$(arg image_height)"/>
+    <param name="k1"                          type="double"        value="$(arg k1)"/>
+    <param name="k2"                          type="double"        value="$(arg k2)"/>
+    <param name="p1"                          type="double"        value="$(arg p1)"/>
+    <param name="p2"                          type="double"        value="$(arg p2)"/>
+    <param name="fx"                          type="double"        value="$(arg fx)"/>
+    <param name="fy"                          type="double"        value="$(arg fy)"/>
+    <param name="cx"                          type="double"        value="$(arg cx)"/>
+    <param name="cy"                          type="double"        value="$(arg cy)"/>
+    <param name="estimate_extrinsic"          type="int"           value="$(arg estimate_extrinsic)"/>
+    <param name="extrinsicTranslation"                             value="$(arg extrinsicTranslation)"/> 
+    <param name="extrinsicRotation"                                value="$(arg extrinsicRotation)"/> 
+    <param name="max_cnt"                     type="int"           value="$(arg max_cnt)"/>
+    <param name="min_dist"                    type="int"           value="$(arg min_dist)"/>
+    <param name="freq"                        type="int"           value="$(arg freq)"/>
+    <param name="F_threshold"                 type="double"        value="$(arg F_threshold)"/>
+    <param name="show_track"                  type="int"           value="$(arg show_track)"/>
+    <param name="equalize"                    type="int"           value="$(arg equalize)"/>
+    <param name="fisheye"                     type="int"           value="$(arg fisheye)"/>
+    <param name="max_solver_time"             type="double"        value="$(arg max_solver_time)"/>
+    <param name="max_num_iterations"          type="int"           value="$(arg max_num_iterations)"/>
+    <param name="keyframe_parallax"           type="double"        value="$(arg keyframe_parallax)"/>
+    <param name="acc_n"                       type="double"        value="$(arg acc_n)"/>
+    <param name="gyr_n"                       type="double"        value="$(arg gyr_n)"/>
+    <param name="acc_w"                       type="double"        value="$(arg acc_w)"/>
+    <param name="gyr_w"                       type="double"        value="$(arg gyr_w)"/>
+    <param name="g_norm"                      type="double"        value="$(arg g_norm)"/>
+    <param name="loop_closure"                type="int"           value="$(arg loop_closure)"/>
+    <param name="fast_relocalization"         type="int"           value="$(arg fast_relocalization)"/>
+    <param name="load_previous_pose_graph"    type="int"           value="$(arg load_previous_pose_graph)"/>
+    <param name="pose_graph_save_path"        type="string"        value="$(arg pose_graph_save_path)"/>
+    <param name="estimate_td"                 type="int"           value="$(arg estimate_td)"/>
+    <param name="td"                          type="double"        value="$(arg td)"/>
+    <param name="rolling_shutter"             type="int"           value="$(arg rolling_shutter)"/>
+    <param name="rolling_shutter_tr"          type="double"        value="$(arg rolling_shutter_tr)"/>
+    <param name="save_image"                  type="int"           value="$(arg save_image)"/>
+    <param name="visualize_imu_forward"       type="int"           value="$(arg visualize_imu_forward)"/>
+    <param name="visualize_camera_size"       type="double"        value="$(arg visualize_camera_size)"/>
+    <param name="dynamic_label"                                    value="$(arg dynamic_label)" />
+  </node>
+
+
+  <node pkg="vins_estimator"    type="object_detection_node.py"    name="object_detection_node"    output="screen">
+    <param name="image_topic"                 value="$(arg image_topic)"/>
+    <param name="depth_topic"                 value="$(arg depth_topic)"/>
+    <param name="weight_path"                 value="$(arg weight_path)"/>
+    <param name="image_width"                 value="$(arg image_width)"/>
+    <param name="image_height"                value="$(arg image_height)"/>
+    <param name="kernel_size"                 value="$(arg kernel_size)"/>
+    <param name="dilate_iter"                 value="$(arg dilate_iter)"/>
+  </node>
+
+  <arg name="rviz"                    default="true"/>
+  <node if="$(arg rviz)"  name="rvizvisualisation" pkg="rviz" type="rviz" output="screen" args="-d $(find vins_estimator)/config/run.rviz" />
+
+  <!-- <arg name="bagfile" default="/root/downloads/bdr/comp_static_and_dynamic/longloop/bdr_compare_longloop_dynamic.bag"/> -->
+    <arg name="bagfile" default="/root/downloads/bdr/floor1/bdr_floor1_dynamic1.bag"/>
+    <!-- 适当延时, 如5s, 否则目标检测节点会丢掉前几帧 -->
+  <node pkg="rosbag" type="play" name="player" args="-d 1 -r 1  $(arg bagfile)" output="screen"/>
+
+
+</launch>

@@ -1,0 +1,12 @@
+<library path="lib/libfeature_tracker_nodelet">
+    <class  name="vins/FeatureTrackerNodelet" type="feature_tracker::FeatureTrackerNodelet"  base_class_type="nodelet::Nodelet">
+        <description>FeatureTrackerNodelet</description>
+    </class>
+
+</library>
+
+<library path="lib/libobject_detection_nodelet">
+    <class  name="vins/ObjectDetectionNodelet" type="object_detection::ObjectDetectionNodelet"  base_class_type="nodelet::Nodelet">
+        <description>ObjectDetectionNodelet</description>
+    </class>
+</library>

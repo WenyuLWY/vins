@@ -1,0 +1,71 @@
+<launch>
+  
+  <param name="use_sim_time"              value="false" />
+  <!-- common parameters -->
+  <arg name="imu_topic"                   default="/camera/imu"/> 
+  <arg name="image_topic"                 default="/camera/color/image_raw"/> 
+  <arg name="depth_topic"                 default="/camera/aligned_depth_to_color/image_raw"/> 
+
+  <arg name="depth_path"                  default="/root/dataset/T7/dataset/bdr/image_depth/bdr_floor1_dynamic/1703215252.694645882.png"/> 
+  <arg name="depth_factor"                default="1000"/> 
+
+  <arg name="image_width"                 default="960"/> 
+  <arg name="image_height"                default="540"/> 
+
+  <!-- distortion_parameters -->
+  <arg name="k1"                          default="0.166439"/> 
+  <arg name="k2"                          default="-0.502598"/> 
+  <arg name="p1"                          default="-0.000923"/> 
+  <arg name="p2"                          default="0.001173"/> 
+  <arg name="k3"                          default="0.461488"/> 
+  <!-- projection_parameters -->
+  <arg name="fx"                          default="675.585510"/> 
+  <arg name="fy"                          default="676.195007"/> 
+  <arg name="cx"                          default="492.865662"/> 
+  <arg name="cy"                          default="269.670898"/> 
+
+
+
+  <!-- <node pkg="vins_estimator"    type="single_test"    name="single_test"    output="screen">
+  
+  
+  </node> -->
+  
+   <node pkg="vins_estimator"    type="depth_cluster_node"    name="depth_cluster_node"    output="screen">
+    <param name="fx"                          type="double"        value="$(arg fx)"/>
+    <param name="fy"                          type="double"        value="$(arg fy)"/>
+    <param name="cx"                          type="double"        value="$(arg cx)"/>
+    <param name="cy"                          type="double"        value="$(arg cy)"/>
+    <param name="depth_path"                   value="$(arg depth_path)"/>
+    <param name="depth_factor"                 value="$(arg depth_factor)"/>
+    <param name="image_width"                    type="int"         value="$(arg image_width)"/> 
+    <param name="image_height"                   type="int"         value="$(arg image_height)"/> 
+  </node>
+
+
+   <!-- <node pkg="vins_estimator"    type="dense_optical_node"    name="dense_optical_node"    output="screen">
+    <param name="fx"                          type="double"        value="$(arg fx)"/>
+    <param name="fy"                          type="double"        value="$(arg fy)"/>
+    <param name="cx"                          type="double"        value="$(arg cx)"/>
+    <param name="cy"                          type="double"        value="$(arg cy)"/>
+    <param name="depth_path"                   value="$(arg depth_path)"/>
+    <param name="depth_factor"                 value="$(arg depth_factor)"/>
+    <param name="image_width"                    type="int"         value="$(arg image_width)"/> 
+    <param name="image_height"                   type="int"         value="$(arg image_height)"/> 
+  </node> -->
+
+  <arg name="bagfile" default="/root/downloads/bdr/floor4/bdr_floor4_dynamic1.bag"/>
+  <node pkg="rosbag" type="play" name="player" args="-d 1 -r 1  $(arg bagfile)" output="log"/>
+
+  <arg name="rviz"                    default="true"/>
+  <node if="$(arg rviz)"  name="rvizvisualisation" pkg="rviz" type="rviz" output="screen" args="-d $(find vins_estimator)/config/run.rviz" />
+
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen"/>
+
+  <!-- <node pkg="nodelet" type="nodelet" name="obstacles_detection" args="load rtabmap_util/obstacles_detection nodelet_manager">
+        <remap from="cloud"           to="/depth_cluster_node/pcl_output"/>
+        <param name="queue_size" type="int" value="30"/>
+  </node> -->
+    
+</launch>
