@@ -1,6 +1,6 @@
 #!/bin/bash
-container_name="vins"  
-image_name="joriswenyuli/vins"
+container_name="vins_rgbdseg"  
+image_name="joriswenyuli/vins_rgbdseg"
 
 if [ "$(docker ps -a -q -f name=$container_name)" ]; then
   docker stop $container_name

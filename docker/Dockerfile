@@ -26,18 +26,16 @@ RUN mkdir -p /root/catkin_ws/src && \
 # slam env
 RUN apt-get update && \
     apt-get install -y libceres-dev 
-# RUN apt-get update && \
-#     apt-get install -y ros-noetic-rtabmap* 
+RUN apt-get update && \
+    apt-get install -y ros-noetic-rtabmap* 
 
-# yolo env
-# ADD requirements.txt /root
+# #pytorch
+RUN apt-get update && apt-get install -y python3-pip 
 
-# # #pytorch
-# RUN apt-get update && apt-get install -y python3-pip && \ 
-#     pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 
+RUN pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 
  
-# RUN pip install ultralytics
-# RUN pip install -U numpy && pip install lapx
+RUN pip install ultralytics
+RUN pip install -U numpy && pip install lapx
 
 
 

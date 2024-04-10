@@ -23,22 +23,27 @@ RUN mkdir -p /root/catkin_ws/src && \
     bash -c "source /opt/ros/noetic/setup.bash && catkin build" && \
     echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
 
-
+# slam env
+RUN apt-get update && \
+    apt-get install -y libceres-dev 
+RUN apt-get update && \
+    apt-get install -y ros-noetic-rtabmap* 
 
 # #pytorch
-# RUN apt-get update && apt-get install -y python3-pip && \ 
-#     pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 
+RUN apt-get update && apt-get install -y python3-pip 
 
+RUN pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113 
+ 
+    
+# ADD requirements.txt /root  
+# RUN pip install -r /root/requirements.txt 
 
+RUN pip install pandas==0.25.3
 
-#conda
-ADD rgbd_segmentation.yaml /root
+RUN pip install cityscapesScripts==1.5.0
 
-RUN mkdir -p ~/miniconda3 && \
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh && \
-    bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3 && rm -rf ~/miniconda3/miniconda.sh && \
-    bash -c "source /root/miniconda3/etc/profile.d/conda.sh && \ 
-            conda env create -f /root/rgbd_segmentation.yaml"  
+# RUN bash -c "source /root/miniconda3/etc/profile.d/conda.sh && \ 
+#             conda env create -f /root/rgbd_segmentation.yaml"  
 
 
 # slam env
@@ -48,10 +53,7 @@ RUN mkdir -p ~/miniconda3 && \
 
 # start
 RUN echo "#!/bin/bash" > /root/start.sh && \
-    echo "cd /root/catkin_ws" >> /root/start.sh && \
-    echo "source /opt/ros/noetic/setup.bash" >> /root/start.sh && \
-    echo "catkin build" >> /root/start.sh && \ 
-    echo "source ~/catkin_ws/devel/setup.bash" >> /root/start.sh && \
+    echo "cd /root/catkin_ws/src/1my_vins/ESANet" >> /root/start.sh && \
     echo "exec \"\$@\"" >> /root/start.sh && \
     chmod +x /root/start.sh
 WORKDIR /root
